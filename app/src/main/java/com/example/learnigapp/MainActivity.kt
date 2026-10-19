@@ -1,4 +1,4 @@
-package com.example.myapp
+package com.example.learnigapp
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -30,8 +30,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MyApp() {
     var backgroundIndex by remember { mutableIntStateOf(0) }
-    var title by remember { mutableStateOf("My little app") }
-    var showSquare by remember { mutableStateOf(false) }
+    var title by remember { mutableStateOf("Lernapp Lars") }
+    var showSquare by remember { mutableStateOf(true) }
 
     val colors = listOf(
         Color(0xFFDDE9F8),
@@ -107,7 +107,7 @@ fun MyApp() {
             shape = RoundedCornerShape(16.dp)
         ) {
             Text(
-                text = "Show square",
+                text = "Neue Vokabel",
                 fontSize = 18.sp
             )
         }
