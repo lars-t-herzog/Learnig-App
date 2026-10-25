@@ -41,6 +41,11 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.material3.ButtonDefaults
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -120,8 +125,11 @@ class ThemeViewModel(application: Application) : AndroidViewModel(application) {
 
 
 object Routes {
-    const val P2B = "P2b"
-    const val MAINACTIVITY = "MainActivity"
+    const val HOME = "Home"
+    const val SETTINGS = "Settings"
+    const val ENGLISH = "English"
+    const val GEOGRAPHY = "Geography"
+    const val SECRET = "Secret"
 }
 
 
@@ -134,19 +142,42 @@ fun App(themeViewModel: ThemeViewModel = viewModel()) {
 
             NavHost(
                 navController = navController,
-                startDestination = Routes.P2B,
+                startDestination = Routes.HOME,
                 modifier = Modifier.padding(innerPadding)
             ) {
 
-                composable(Routes.P2B) {
-                    P2b(
+                composable(Routes.HOME) {
+                    Home(
                         navController,
                         onCycleTheme = themeViewModel::cycleThemeMode
                     )
                 }
 
-                composable(Routes.MAINACTIVITY) {
-                    MainActivity(
+                composable(Routes.SETTINGS) {
+                    Settings(
+                        navController,
+                        currentMode = themeViewModel.appThemeMode,
+                        onCycleTheme = themeViewModel::cycleThemeMode
+                    )
+                }
+
+                composable(Routes.ENGLISH) {
+                    English(
+                        navController,
+                        currentMode = themeViewModel.appThemeMode,
+                        onCycleTheme = themeViewModel::cycleThemeMode
+                    )
+                }
+
+                composable(Routes.GEOGRAPHY) {
+                    Geography(
+                        navController,
+                        currentMode = themeViewModel.appThemeMode,
+                        onCycleTheme = themeViewModel::cycleThemeMode
+                    )
+                }
+                composable(Routes.SECRET) {
+                    Secret(
                         navController,
                         currentMode = themeViewModel.appThemeMode,
                         onCycleTheme = themeViewModel::cycleThemeMode
@@ -177,24 +208,25 @@ fun App(themeViewModel: ThemeViewModel = viewModel()) {
 var m: Int = 0
 
 @Composable
-fun P2b(navController: NavController, onCycleTheme: () -> Unit) {
+fun Home(navController: NavController, onCycleTheme: () -> Unit) {
     val context = LocalContext.current
     Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 16.dp)
+            .padding(bottom = 0.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = ("p2b"), fontSize = 25.sp)
+        Button (onClick = { navController.navigate(Routes.SECRET) },colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.background,contentColor = MaterialTheme.colorScheme.onBackground)) {Text(text = ("Home"), fontSize = 25.sp)}
 
-        Spacer(modifier = Modifier.weight(1f))
-
-        Button(
-            onClick = { navController.navigate(Routes.MAINACTIVITY) },
-            modifier = Modifier.height(40.dp).width(130.dp),
+        Button (onClick = { navController.navigate(Routes.SETTINGS) },
+            modifier = Modifier.align(Alignment.End),
+            contentPadding = PaddingValues(0.dp)
         )
 
-        {
-            Text(text = ("MainActivity"), fontSize = 20.sp)
-        }
+        { Text(text = ("Settings"), fontSize = 20.sp) }
+
+        Spacer(modifier = Modifier.weight(1f))
 
         Button(onClick = { Toast.makeText(context, "m = $m", Toast.LENGTH_SHORT).show() }) {
             Text(text = "print m")
@@ -204,19 +236,31 @@ fun P2b(navController: NavController, onCycleTheme: () -> Unit) {
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
-            onClick = { m = (m + 1) },
-            modifier = Modifier.height(40.dp).width(130.dp),
+            onClick = { m = (m + 1) }
         )
 
         {
             Text(text = ("Themes"), fontSize = 20.sp)
         }
         Spacer(modifier = Modifier.height(20.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+            Button(onClick = { navController.navigate(Routes.ENGLISH) },
+                shape = RectangleShape,
+                modifier = Modifier.width(210.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary))
+            { Text(text = ("English"), fontSize = 20.sp) }
+            Button(onClick = { navController.navigate(Routes.GEOGRAPHY)},
+                shape = RectangleShape,
+                modifier = Modifier.width(210.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary)
+                )
+            { Text(text = ("Geography"), fontSize = 20.sp) }
+        }
     }
 }
 
 @Composable
-fun MainActivity(
+fun Settings(
     navController: NavController,
     currentMode: AppThemeMode,
     onCycleTheme: () -> Unit
@@ -228,19 +272,62 @@ fun MainActivity(
 
         verticalArrangement = Arrangement.spacedBy(8.dp)  // gap between children
     ) {
-        Text("lets see")
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { navController.popBackStack() }) { Text("A") }
-            Button(onClick = { navController.popBackStack() }) { Text("B") }
-        }
+        Text(text = ("Settings:"),fontSize = 24.sp)
+
+        Spacer(modifier = Modifier.height(48.dp))
 
         Button(onClick = onCycleTheme) {
             Text("Theme: ${currentMode.label}")
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp),modifier = Modifier.align(Alignment.End)) {
+            Button(onClick = { navController.popBackStack() }) { Text("Back") }
+            Button(onClick = { navController.popBackStack() }) { Text("BBack") }
         }
     }
 
 }
 
+@Composable
+fun English(navController: NavController,
+              currentMode: AppThemeMode,
+              onCycleTheme: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+    ){ Text(text = ("Vocabulary-Trainer:"),fontSize = 24.sp)
+        Spacer(modifier = Modifier.weight(1f))
+        Button(onClick = { navController.popBackStack() },modifier = Modifier.align(Alignment.End)) { Text("Back") }}
+}
+
+@Composable
+fun Geography(navController: NavController,
+             currentMode: AppThemeMode,
+             onCycleTheme: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+    ){  Text(text = ("World map knowledge quiz:"),fontSize = 24.sp)
+        Spacer(modifier = Modifier.weight(1f))
+        Button(onClick = { navController.popBackStack() },modifier = Modifier.align(Alignment.End)) { Text("Back") }}
+}
+@Composable
+fun Secret(navController: NavController,
+           currentMode: AppThemeMode,
+           onCycleTheme: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+    )
+    { Text("You`re not supposed to see this")
+        Spacer(modifier = Modifier.weight(1f))
+        Button(onClick = { navController.popBackStack() },modifier = Modifier.align(Alignment.End)) { Text("Back") }}
+}
 
 @Preview(showBackground = true)
 @Composable

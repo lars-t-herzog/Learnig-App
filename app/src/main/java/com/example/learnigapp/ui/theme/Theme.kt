@@ -28,8 +28,8 @@ private val LightColorScheme = lightColorScheme(
 
 
             public val Default = lightColorScheme(
-        primary = Color(0xFF047807),        //background of Botton
-        onPrimary = Color(0xFF000000),      //text of Botton
+        primary = Color(0xFF047807),        //background of Button
+        onPrimary = Color(0xFF000000),      //text of Button
         background = Color(0xFFBAE4F7),     //background of App
         onBackground = Color(0xFF0037ED),   //text on background
         surface = Color(0xFF00A878),        //containers on background
@@ -37,8 +37,8 @@ private val LightColorScheme = lightColorScheme(
     )
 
             public val DarkColors = darkColorScheme(
-        primary = Color(0xFF3D3D3D),//background of Botton
-        onPrimary = Color(0xFFFFFFFF),//text of Botton
+        primary = Color(0xFF3D3D3D),//background of Button
+        onPrimary = Color(0xFFFFFFFF),//text of Button
         background = Color(0xFF000000),//background of App
         onBackground = Color(0xFFFFFFFF),//text on background
         surface = Color(0xFF636363),//containers on background
@@ -46,8 +46,8 @@ private val LightColorScheme = lightColorScheme(
     )
 
             public val LightColors = lightColorScheme(
-        primary = Color(0xFFBFBFBF),//background of Botton
-        onPrimary = Color(0xFF000000),//text of Botton
+        primary = Color(0xFFBFBFBF),//background of Button
+        onPrimary = Color(0xFF000000),//text of Button
         background = Color(0xFFFFFFFF),//background of App
         onBackground = Color(0xFF000000),//text on background
         surface = Color(0xFF9C9C9C),//containers on background

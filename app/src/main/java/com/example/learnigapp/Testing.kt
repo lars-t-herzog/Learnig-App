@@ -16,15 +16,15 @@ import com.example.learnigapp.ui.theme.LearnigAppTheme
 fun App2() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "home") {
-        composable("home") { Home(navController) }
+    NavHost(navController = navController, startDestination = "home2") {
+        composable("home2") { Home2(navController) }
         composable("settings") { Settings(navController) }
         composable("geographie") { Geographie(navController) }
     }
 }
 
 @Composable
-fun Home(navController: NavController) {
+fun Home2(navController: NavController) {
     Column(modifier = Modifier.padding(16.dp)) {
         Text("home")
         Button(onClick = { navController.navigate("settings") }) {
