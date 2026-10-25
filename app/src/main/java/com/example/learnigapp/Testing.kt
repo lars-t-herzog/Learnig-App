@@ -13,7 +13,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.learnigapp.ui.theme.LearnigAppTheme
 
 @Composable
-fun App() {
+fun App2() {
     val navController = rememberNavController()
 
     NavHost(navController = navController, startDestination = "home") {
@@ -59,8 +59,8 @@ fun Geographie(navController: NavController) {
 
 @Preview(showBackground = true)
 @Composable
-fun AppPreview() {
+fun App2Preview() {
     LearnigAppTheme {
-        App()
+        App2()
     }
 }
