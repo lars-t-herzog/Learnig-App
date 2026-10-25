@@ -46,6 +46,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.ButtonDefaults
 
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.res.imageResource
+
+import android.media.AudioAttributes
+import android.media.SoundPool
+
+import androidx.compose.foundation.clickable
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,7 +65,28 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+class Sounds(context: Context) {
+    private val soundPool = SoundPool.Builder()
+        .setMaxStreams(2)
+        .setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+        )
+        .build()
 
+    private val clickId = soundPool.load(context, R.raw.cow_mooh, 1)
+
+    fun playClick(){
+        soundPool.play(clickId, 1f, 1f, 0, 0, 1f)
+    }
+
+    fun release(){
+        soundPool.release()
+    }
+
+}
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
@@ -136,6 +166,13 @@ object Routes {
 @Composable
 fun App(themeViewModel: ThemeViewModel = viewModel()) {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val sounds = remember { Sounds(context) }
+    DisposableEffect(Unit) {
+        onDispose { sounds.release() }
+    }
+
+
     AppTheme(mode = themeViewModel.appThemeMode) {
 
         Scaffold { innerPadding ->
@@ -149,7 +186,8 @@ fun App(themeViewModel: ThemeViewModel = viewModel()) {
                 composable(Routes.HOME) {
                     Home(
                         navController,
-                        onCycleTheme = themeViewModel::cycleThemeMode
+                        onCycleTheme = themeViewModel::cycleThemeMode,
+                        onPlayClick = { sounds.playClick() }
                     )
                 }
 
@@ -208,7 +246,7 @@ fun App(themeViewModel: ThemeViewModel = viewModel()) {
 var m: Int = 0
 
 @Composable
-fun Home(navController: NavController, onCycleTheme: () -> Unit) {
+fun Home(navController: NavController, onCycleTheme: () -> Unit,onPlayClick: () -> Unit) {
     val context = LocalContext.current
     Column(
         modifier = Modifier
@@ -216,8 +254,20 @@ fun Home(navController: NavController, onCycleTheme: () -> Unit) {
             .padding(top = 16.dp)
             .padding(bottom = 0.dp),
         horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Button (onClick = { navController.navigate(Routes.SECRET) },colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.background,contentColor = MaterialTheme.colorScheme.onBackground)) {Text(text = ("Home"), fontSize = 25.sp)}
+    ) { Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+        Button (onClick = { if(m>= 5){navController.navigate(Routes.SECRET) }else{Toast.makeText(context, "m = $m", Toast.LENGTH_SHORT).show() }},colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.background,contentColor = MaterialTheme.colorScheme.onBackground),contentPadding = PaddingValues(0.dp)) {Text(text = ("Home"), fontSize = 25.sp)}
+
+        Image( bitmap = ImageBitmap.imageResource(id=R.drawable.eath_scroll),
+             contentDescription = "earth_scroll_from_Mc",
+             modifier = Modifier.size(64.dp).clickable{onPlayClick()},
+            filterQuality = FilterQuality.None
+        )}
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Button(onClick = onPlayClick) {
+            Text(text = "Play")
+        }
 
         Button (onClick = { navController.navigate(Routes.SETTINGS) },
             modifier = Modifier.align(Alignment.End),
