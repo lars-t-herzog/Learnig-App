@@ -76,17 +76,24 @@ class Sounds(context: Context) {
         )
         .build()
 
-    private val clickId = soundPool.load(context, R.raw.cow_mooh, 1)
+    private var clickId: Int = 0
 
-    fun playClick(){
-        soundPool.play(clickId, 1f, 1f, 0, 0, 1f)
+    init {
+        try {
+            clickId = soundPool.load(context, R.raw.cow_mooh, 1)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
-    fun release(){
-        soundPool.release()
-    }
+        fun playClick() {
+            soundPool.play(clickId, 1f, 1f, 0, 0, 1f)
+        }
 
-}
+        fun release() {
+            soundPool.release()
+        }
+    }
 
 private val Context.dataStore by preferencesDataStore(name = "settings")
 
@@ -151,8 +158,6 @@ class ThemeViewModel(application: Application) : AndroidViewModel(application) {
 
     }
 }
-
-
 
 object Routes {
     const val HOME = "Home"
@@ -293,21 +298,25 @@ fun Home(navController: NavController, onCycleTheme: () -> Unit,onPlayClick: () 
             Text(text = ("Themes"), fontSize = 20.sp)
         }
         Spacer(modifier = Modifier.height(20.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(),Arrangement.spacedBy(0.dp)) {
             Button(onClick = { navController.navigate(Routes.ENGLISH) },
                 shape = RectangleShape,
-                modifier = Modifier.width(210.dp),
+                modifier = Modifier.weight(1f),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary))
             { Text(text = ("English"), fontSize = 20.sp) }
             Button(onClick = { navController.navigate(Routes.GEOGRAPHY)},
                 shape = RectangleShape,
-                modifier = Modifier.width(210.dp),
+                modifier = Modifier.weight(1f),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary)
                 )
             { Text(text = ("Geography"), fontSize = 20.sp) }
         }
     }
 }
+
+
+
+
 
 @Composable
 fun Settings(
@@ -317,10 +326,10 @@ fun Settings(
 ) {
     Column(
         modifier = Modifier
-            .fillMaxSize()                        // take the whole screen
-            .padding(16.dp),                      // space inside the edge
+            .fillMaxSize()
+            .padding(16.dp),
 
-        verticalArrangement = Arrangement.spacedBy(8.dp)  // gap between children
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(text = ("Settings:"),fontSize = 24.sp)
 
@@ -332,13 +341,9 @@ fun Settings(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp),modifier = Modifier.align(Alignment.End)) {
-            Button(onClick = { navController.popBackStack() }) { Text("Back") }
-            Button(onClick = { navController.popBackStack() }) { Text("BBack") }
+            Button(onClick = { navController.popBackStack(Routes.HOME, false ) },modifier = Modifier.align(Alignment.End)) { Text("Back") }
         }
     }
-
-}
 
 @Composable
 fun English(navController: NavController,
@@ -350,7 +355,7 @@ fun English(navController: NavController,
             .padding(16.dp),
     ){ Text(text = ("Vocabulary-Trainer:"),fontSize = 24.sp)
         Spacer(modifier = Modifier.weight(1f))
-        Button(onClick = { navController.popBackStack() },modifier = Modifier.align(Alignment.End)) { Text("Back") }}
+        Button(onClick = { navController.popBackStack(Routes.HOME, false ) },modifier = Modifier.align(Alignment.End)) { Text("Back") }}
 }
 
 @Composable
@@ -363,7 +368,7 @@ fun Geography(navController: NavController,
             .padding(16.dp),
     ){  Text(text = ("World map knowledge quiz:"),fontSize = 24.sp)
         Spacer(modifier = Modifier.weight(1f))
-        Button(onClick = { navController.popBackStack() },modifier = Modifier.align(Alignment.End)) { Text("Back") }}
+        Button(onClick = { navController.popBackStack(Routes.HOME, false ) },modifier = Modifier.align(Alignment.End)) { Text("Back") }}
 }
 @Composable
 fun Secret(navController: NavController,
@@ -376,7 +381,7 @@ fun Secret(navController: NavController,
     )
     { Text("You`re not supposed to see this")
         Spacer(modifier = Modifier.weight(1f))
-        Button(onClick = { navController.popBackStack() },modifier = Modifier.align(Alignment.End)) { Text("Back") }}
+        Button(onClick = { navController.popBackStack(Routes.HOME, false ) },modifier = Modifier.align(Alignment.End)) { Text("Back") }}
 }
 
 @Preview(showBackground = true)
