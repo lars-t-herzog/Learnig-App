@@ -9,6 +9,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+@Composable
+fun AlgorithmButton(onOpenAlgorithm: () -> Unit) {
+    Button(onClick = onOpenAlgorithm) {
+        Text("Algorithm")
+    }
+}
+
 class AlgorithmClass {
     var n: Int = 0
     var g: Boolean = true

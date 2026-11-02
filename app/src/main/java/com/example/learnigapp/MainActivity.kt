@@ -42,7 +42,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.ButtonDefaults
 
@@ -53,8 +52,11 @@ import androidx.compose.ui.res.imageResource
 
 import android.media.AudioAttributes
 import android.media.SoundPool
+import android.widget.Button
 
 import androidx.compose.foundation.clickable
+
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -165,6 +167,7 @@ object Routes {
     const val ENGLISH = "English"
     const val GEOGRAPHY = "Geography"
     const val SECRET = "Secret"
+    const val ALGORITHM = "Algorithm"
 }
 
 
@@ -187,12 +190,12 @@ fun App(themeViewModel: ThemeViewModel = viewModel()) {
                 startDestination = Routes.HOME,
                 modifier = Modifier.padding(innerPadding)
             ) {
-
                 composable(Routes.HOME) {
                     Home(
                         navController,
                         onCycleTheme = themeViewModel::cycleThemeMode,
-                        onPlayClick = { sounds.playClick() }
+                        onPlayClick = { sounds.playClick() },
+                        onOpenAlgorithm = { navController.navigate(Routes.ALGORITHM) }
                     )
                 }
 
@@ -226,6 +229,9 @@ fun App(themeViewModel: ThemeViewModel = viewModel()) {
                         onCycleTheme = themeViewModel::cycleThemeMode
                     )
                 }
+                composable(Routes.ALGORITHM) {
+                    AlgorithmScreen()
+                }
             }
         }
     }
@@ -251,7 +257,7 @@ fun App(themeViewModel: ThemeViewModel = viewModel()) {
 var m: Int = 0
 
 @Composable
-fun Home(navController: NavController, onCycleTheme: () -> Unit,onPlayClick: () -> Unit) {
+fun Home(navController: NavController, onCycleTheme: () -> Unit,onPlayClick: () -> Unit, onOpenAlgorithm: () -> Unit) {
     val context = LocalContext.current
     Column(
         modifier = Modifier
@@ -273,6 +279,8 @@ fun Home(navController: NavController, onCycleTheme: () -> Unit,onPlayClick: () 
         Button(onClick = onPlayClick) {
             Text(text = "Play")
         }
+
+        AlgorithmButton(onOpenAlgorithm)
 
         Button (onClick = { navController.navigate(Routes.SETTINGS) },
             modifier = Modifier.align(Alignment.End),
