@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -47,11 +48,19 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.datastore.preferences)
-
+    val roomVersion = "2.7.1"
     //01.11.26 sql implementation
     implementation(libs.androidx.sqlite)
     implementation(libs.androidx.sqlite.bundled)
+    implementation("androidx.room:room-runtime:${roomVersion}")
+    implementation("androidx.room:room-ktx:${roomVersion}")
+    ksp("androidx.room:room-compiler:$roomVersion")
+    annotationProcessor(libs.androidx.room.compiler)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     //.
+
+
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

@@ -25,22 +25,22 @@ private val LightColorScheme = lightColorScheme(
 )
 
 
-
+// 344F62 nice blue
 
             public val Default = lightColorScheme(
-        primary = Color(0xFF047807),        //background of Button
+        primary = Color(0xFF91A99A),        //background of Button
         onPrimary = Color(0xFF000000),      //text of Button
-        background = Color(0xFFBAE4F7),     //background of App
-        onBackground = Color(0xFF0037ED),   //text on background
+        background = Color(0xFFDCE9E1),     //background of App
+        onBackground = Color(0xFF000000),   //text on background
         surface = Color(0xFF00A878),        //containers on background
         onSurface = Color(0xFF000000)       //color of text in containers
     )
 
             public val DarkColors = darkColorScheme(
         primary = Color(0xFF3D3D3D),//background of Button
-        onPrimary = Color(0xFFFFFFFF),//text of Button
+        onPrimary = Color(0xFFF0F0F0),//text of Button
         background = Color(0xFF000000),//background of App
-        onBackground = Color(0xFFFFFFFF),//text on background
+        onBackground = Color(0xFFF0F0F0),//text on background
         surface = Color(0xFF636363),//containers on background
         onSurface = Color(0xFFFFFFFF)//color of text in containers
     )
@@ -48,7 +48,7 @@ private val LightColorScheme = lightColorScheme(
             public val LightColors = lightColorScheme(
         primary = Color(0xFFBFBFBF),//background of Button
         onPrimary = Color(0xFF000000),//text of Button
-        background = Color(0xFFFFFFFF),//background of App
+        background = Color(0xFFFFFFF0),//background of App
         onBackground = Color(0xFF000000),//text on background
         surface = Color(0xFF9C9C9C),//containers on background
         onSurface = Color(0xFF000000)//color of text in containers
