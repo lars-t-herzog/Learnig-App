@@ -7,10 +7,11 @@ import android.media.SoundPool
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,7 +24,6 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -47,6 +47,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -155,9 +157,10 @@ object Routes {
     const val SECRET = "Secret_Page"
     const val ALGORITHM = "Algorithm"
     const val ADD_DEL_VOCAB = "AddDelVocab_Page"
-    const val TESTING_VOCAB_NEW = "TestingVocab_Page_New"
-    const val TESTING_VOCAB_REVISE = "TestingVocab_Page_Revise"
-    const val TESTING_VOCAB_LEARNED = "TestingVocab_Page_Learned"
+    const val VOCAB_NEW = "Vocab_Page_New"
+    const val VOCAB_REVISE = "Vocab_Page_Revise"
+    const val VOCAB_LEARNED = "Vocab_Page_Learned"
+    const val VOCAB_LEARNED_VIEW = "Vocab_Page_Browse"
 }
 
 @Composable
@@ -197,7 +200,8 @@ fun App(themeViewModel: ThemeViewModel = viewModel()) {
                 }
 
                 composable(Routes.SECRET) {
-                    Secret_Page(navController,
+                    Secret_Page(
+                        navController,
                         onPlayClick = { sounds.playClick() },
                         onOpenAlgorithm = { navController.navigate(Routes.ALGORITHM) }
                     )
@@ -211,16 +215,20 @@ fun App(themeViewModel: ThemeViewModel = viewModel()) {
                     AddDelVocab_Page(navController)
                 }
 
-                composable(Routes.TESTING_VOCAB_NEW) {
-                    TestingVocab_Page(navController, testCategory = "NEW")
+                composable(Routes.VOCAB_NEW) {
+                   Vocab_Page(navController, testCategory = "New")
                 }
 
-                composable(Routes.TESTING_VOCAB_REVISE) {
-                    TestingVocab_Page(navController, testCategory = "REVISE")
+                composable(Routes.VOCAB_REVISE) {
+                    Vocab_Page(navController, testCategory = "Revise")
                 }
 
-                composable(Routes.TESTING_VOCAB_LEARNED) {
-                    TestingVocab_Page(navController, testCategory = "LEARNED")
+                composable(Routes.VOCAB_LEARNED) {
+                    Vocab_Page(navController, testCategory = "Learned")
+                }
+
+                composable(Routes.VOCAB_LEARNED_VIEW) {
+                   Vocab_Page(navController, testCategory = "Browse")
                 }
             }
         }
@@ -229,30 +237,31 @@ fun App(themeViewModel: ThemeViewModel = viewModel()) {
 
 var m: Int = 0
 
+/**
+ * Minimized Home_Page.
+ */
 @Composable
 fun Home_Page(navController: NavController) {
-    val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 16.dp)
-            .padding(bottom = 0.dp),
+            .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-            Button(
-                onClick = {
-                    if (m >= 5) {
-                        navController.navigate(Routes.SECRET)
-                    } else {
-                        m += 1
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    contentColor = MaterialTheme.colorScheme.onBackground
-                ),
-                contentPadding = PaddingValues(0.dp)
-            ) { Text(text = "Home", fontSize = 25.sp) }
+        Button(
+            onClick = {
+                if (m >= 5) {
+                    navController.navigate(Routes.SECRET)
+                } else {
+                    m += 1
+                }
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.background,
+                contentColor = MaterialTheme.colorScheme.onBackground
+            ),
+            contentPadding = PaddingValues(0.dp)
+        ) { Text(text = "Home", fontSize = 25.sp) }
 
         Spacer(modifier = Modifier.height(20.dp))
 
@@ -261,7 +270,6 @@ fun Home_Page(navController: NavController) {
             modifier = Modifier.align(Alignment.End),
             contentPadding = PaddingValues(0.dp)
         ) { Text(text = "Settings", fontSize = 20.sp) }
-
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -283,24 +291,152 @@ fun Home_Page(navController: NavController) {
     }
 }
 
+/**
+ * Converts Vocab list to JSON backup string.
+ */
+fun exportVocabToJson(vocabs: List<Vocab>): String {
+    val jsonArray = JSONArray()
+    for (vocab in vocabs) {
+        val obj = JSONObject()
+        obj.put("word", vocab.word)
+        obj.put("translation", vocab.translation)
+        obj.put("repetitions", vocab.repetitions)
+        obj.put("intervalDays", vocab.intervalDays)
+        obj.put("dueDay", vocab.dueDay)
+        jsonArray.put(obj)
+    }
+    return jsonArray.toString(2)
+}
+
+/**
+ * Parses JSON backup string back into Vocab list.
+ */
+fun parseVocabFromJson(jsonString: String): List<Vocab> {
+    val list = mutableListOf<Vocab>()
+    try {
+        val jsonArray = JSONArray(jsonString)
+        for (i in 0 until jsonArray.length()) {
+            val obj = jsonArray.getJSONObject(i)
+            val vocab = Vocab(
+                word = obj.getString("word"),
+                translation = obj.getString("translation"),
+                repetitions = obj.optInt("repetitions", 0),
+                intervalDays = obj.optInt("intervalDays", 0),
+                dueDay = obj.optLong("dueDay", System.currentTimeMillis() / 86_400_000L)
+            )
+            list.add(vocab)
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+    return list
+}
+
+/**
+ * Settings Page with Theme toggle & Database Backup/Restore (Export & Import).
+ */
 @Composable
 fun Settings_Page(
     navController: NavController,
     currentMode: AppThemeMode,
-    onCycleTheme: () -> Unit
+    onCycleTheme: () -> Unit,
+    vocabViewModel: VocabViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val allVocabs by vocabViewModel.allVocab.collectAsState()
+
+    // System File Picker for Saving Backup JSON File
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/json")
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val jsonString = exportVocabToJson(allVocabs)
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    outputStream.write(jsonString.toByteArray(Charsets.UTF_8))
+                }
+                Toast.makeText(context, "Exported ${allVocabs.size} words to backup!", Toast.LENGTH_LONG).show()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "Export failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    // System File Picker for Opening/Restoring Backup JSON File
+    val importLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val jsonString = context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                    inputStream.bufferedReader(Charsets.UTF_8).readText()
+                } ?: ""
+
+                val importedList = parseVocabFromJson(jsonString)
+                if (importedList.isNotEmpty()) {
+                    vocabViewModel.importVocabList(importedList) { count ->
+                        Toast.makeText(context, "Imported $count words into database!", Toast.LENGTH_LONG).show()
+                    }
+                } else {
+                    Toast.makeText(context, "No valid vocabulary data found in backup", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "Import failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(text = "Settings:", fontSize = 24.sp)
+        Text(text = "Settings:", fontSize = 24.sp, fontWeight = FontWeight.Bold)
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        Button(onClick = onCycleTheme) {
-            Text("Theme: ${currentMode.label}")
+        Button(onClick = onCycleTheme, modifier = Modifier.fillMaxWidth()) {
+            Text("Theme: ${currentMode.label}", fontSize = 16.sp)
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+        // Database Backup & Restore Section
+        Text(text = "Database Backup & Restore", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        Text(
+            text = "Export your vocabulary progress to a backup file before reinstalling or updating the app, and import it back afterwards to keep all your progress.",
+            fontSize = 13.sp,
+            color = Color.Gray
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Export Backup Button
+            Button(
+                onClick = {
+                    val defaultFileName = "vocab_backup_${System.currentTimeMillis() / 1000}.json"
+                    exportLauncher.launch(defaultFileName)
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Export Backup")
+            }
+
+            // Import Backup Button
+            Button(
+                onClick = {
+                    importLauncher.launch(arrayOf("application/json", "*/*"))
+                },
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+            ) {
+                Text("Import Backup")
+            }
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -334,30 +470,33 @@ fun AddDelVocab_Page(navController: NavController) {
         Button(
             onClick = { navController.popBackStack(Routes.ENGLISH, false) },
             modifier = Modifier.align(Alignment.End)
-        ) { Text("Back to English") }
+        ) { Text("Back") }
     }
 }
 
 /**
- * English Page with 3 Revision Categories and top Add/Delete button.
+ * English Page with 4 Revision Categories and top Add/Delete button.
  */
 @Composable
 fun English_Page(navController: NavController, vocabViewModel: VocabViewModel = viewModel()) {
     val allVocabs by vocabViewModel.allVocab.collectAsState()
     val today = System.currentTimeMillis() / 86_400_000L
 
-    // Filter SQLite vocabs into 3 categories
+    // Filter SQLite vocabs into categories
     val newVocabs = remember(allVocabs) { allVocabs.filter { it.repetitions == 0 } }
     val reviseVocabs = remember(allVocabs, today) {
         allVocabs.filter { it.repetitions in 1..6 && it.dueDay <= today }
     }
     val learnedVocabs = remember(allVocabs) { allVocabs.filter { it.repetitions >= 7 } }
+    val browseVocabs = remember(allVocabs) {
+        learnedVocabs.ifEmpty { allVocabs.filter { it.repetitions > 0 } }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(text = "Vocabulary Trainer", fontSize = 24.sp, fontWeight = FontWeight.Bold)
 
@@ -372,16 +511,14 @@ fun English_Page(navController: NavController, vocabViewModel: VocabViewModel = 
 
         // Category 1: New Words (repetitions == 0)
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { navController.navigate(Routes.TESTING_VOCAB_NEW) },
+            modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "New Words (repetitions = 0)", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(text = "New Words", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text(text = "${newVocabs.size} new words ready to learn", fontSize = 14.sp, color = Color.Gray)
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { navController.navigate(Routes.TESTING_VOCAB_NEW) }) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Button(onClick = { navController.navigate(Routes.VOCAB_NEW) }) {
                     Text("Learn New Words")
                 }
             }
@@ -389,34 +526,45 @@ fun English_Page(navController: NavController, vocabViewModel: VocabViewModel = 
 
         // Category 2: Revise Words (repetitions in 1..6 & dueDay <= today)
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { navController.navigate(Routes.TESTING_VOCAB_REVISE) },
+            modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Revise Words (due for review)", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(text = "Revise Words", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text(text = "${reviseVocabs.size} words due today", fontSize = 14.sp, color = Color.Gray)
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { navController.navigate(Routes.TESTING_VOCAB_REVISE) }) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Button(onClick = { navController.navigate(Routes.VOCAB_REVISE) }) {
                     Text("Revise Due Words")
                 }
             }
         }
 
-        // Category 3: Learned Words (repetitions >= 7)
+        // Category 3: Learned Words (repetitions >= 7 - modifies algorithm if mistake)
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { navController.navigate(Routes.TESTING_VOCAB_LEARNED) },
+            modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Learned Words (repetitions = 7+)", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(text = "Learned Words", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text(text = "${learnedVocabs.size} words completed", fontSize = 14.sp, color = Color.Gray)
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { navController.navigate(Routes.TESTING_VOCAB_LEARNED) }) {
-                    Text("Practice Learned Words")
+                Spacer(modifier = Modifier.height(6.dp))
+                Button(onClick = { navController.navigate(Routes.VOCAB_LEARNED) }) {
+                    Text(" Learned Words")
+                }
+            }
+        }
+
+        // Category 4: Browse Words Viewer (repetitions >= 7 - no algorithm modification)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(text = "Browse Words", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(text = "${browseVocabs.size} words available to review", fontSize = 14.sp, color = Color.Gray)
+                Spacer(modifier = Modifier.height(6.dp))
+                Button(onClick = { navController.navigate(Routes.VOCAB_LEARNED_VIEW) }) {
+                    Text("Browse Words")
                 }
             }
         }
@@ -430,32 +578,35 @@ fun English_Page(navController: NavController, vocabViewModel: VocabViewModel = 
     }
 }
 
-
-
-
-/* * Flashcard Testing Page for Vocab ("TestingVocab_Page").
+/**
+ * Flashcard Page for Vocab ("Vocab_Page").
  * Shows word in a big card, "Show Translation" button reveals answer and replaces with "I knew" and "I didn't".
+ * Automatically advances through all words dynamically until completion.
  */
 @Composable
-fun TestingVocab_Page(
+fun Vocab_Page(
     navController: NavController,
-    testCategory: String, // "NEW", "REVISE", or "LEARNED"
+    testCategory: String, // "New", "Revise", "Learned", or "Browse"
     vocabViewModel: VocabViewModel = viewModel()
 ) {
     val allVocabs by vocabViewModel.allVocab.collectAsState()
     val today = System.currentTimeMillis() / 86_400_000L
 
-    // Filter test list based on category
-    val testList = remember(allVocabs, testCategory, today) {
+    // Dynamically filter matching words for this category
+    val currentQueue = remember(allVocabs, testCategory, today) {
         when (testCategory) {
-            "NEW" -> allVocabs.filter { it.repetitions == 0 }
-            "REVISE" -> allVocabs.filter { it.repetitions in 1..6 && it.dueDay <= today }
-            "LEARNED" -> allVocabs.filter { it.repetitions >= 7 }
+            "New" -> allVocabs.filter { it.repetitions == 0 }
+            "Revise" -> allVocabs.filter { it.repetitions in 1..6 && it.dueDay <= today }
+            "Learned" -> allVocabs.filter { it.repetitions >= 7 }
+            "Browse" -> {
+                val learned = allVocabs.filter { it.repetitions >= 7 }
+                learned.ifEmpty { allVocabs.filter { it.repetitions > 0 } }
+            }
             else -> allVocabs
         }
     }
 
-    var currentIndex by remember { mutableIntStateOf(0) }
+    var viewIndex by remember { mutableIntStateOf(0) }
     var showAnswer by remember { mutableStateOf(false) }
 
     Column(
@@ -465,119 +616,150 @@ fun TestingVocab_Page(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Testing: $testCategory Words",
+            text = "$testCategory Words",
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        if (testList.isNotEmpty() && currentIndex < testList.size) {
-            val currentVocab = testList[currentIndex]
-
-            // Big Flashcard Rectangle Box
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(280.dp),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(20.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = currentVocab.word,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (showAnswer) {
-                        Text(
-                            text = currentVocab.translation,
-                            fontSize = 24.sp,
-                            color = MaterialTheme.colorScheme.primary,
-                            textAlign = TextAlign.Center
-                        )
-                        Text(
-                            text = "(Repetitions: ${currentVocab.repetitions})",
-                            fontSize = 12.sp,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(top = 8.dp)
-                        )
-                    }
-                }
+        if (currentQueue.isNotEmpty()) {
+            val activeIndex = if (testCategory == "Browse") {
+                viewIndex.coerceAtMost(currentQueue.size - 1)
+            } else {
+                0 // In NEW, REVISE, and LEARNED, position 0 always points to the next active word!
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            if (activeIndex < currentQueue.size) {
+                val currentVocab = currentQueue[activeIndex]
 
-            // Bottom Buttons: "Show Translation" vs "I knew" / "I didn't"
-            if (!showAnswer) {
-                Button(
-                    onClick = { showAnswer = true },
+                // Big Flashcard Rectangle Box
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
+                        .height(280.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
-                    Text("Show Translation", fontSize = 18.sp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = currentVocab.word,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        if (showAnswer) {
+                            Text(
+                                text = currentVocab.translation,
+                                fontSize = 24.sp,
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "(Repetitions: ${currentVocab.repetitions})",
+                                fontSize = 12.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Bottom Buttons: "Show Translation" vs "I knew" / "I didn't"
+                if (!showAnswer) {
+                    Button(
+                        onClick = { showAnswer = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                    ) {
+                        Text("Show Translation", fontSize = 18.sp)
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // "I knew" button (p = true)
+                        Button(
+                            onClick = {
+                                if (testCategory != "LEARNED_VIEW") {
+                                    val updated = calculateNextReview(currentVocab, knewIt = true)
+                                    vocabViewModel.updateVocab(updated)
+                                } else {
+                                    viewIndex++
+                                }
+                                showAnswer = false
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
+                        ) {
+                            Text("I knew", fontSize = 16.sp)
+                        }
+
+                        // "I didn't" button (p = false)
+                        Button(
+                            onClick = {
+                                if (testCategory != "LEARNED_VIEW") {
+                                    val updated = calculateNextReview(currentVocab, knewIt = false)
+                                    vocabViewModel.updateVocab(updated)
+                                } else {
+                                    viewIndex++
+                                }
+                                showAnswer = false
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp)
+                        ) {
+                            Text("I didn't", fontSize = 16.sp)
+                        }
+                    }
                 }
             } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                // All words completed
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    // "I knew" button (p = true)
-                    Button(
-                        onClick = {
-                            val updated = calculateNextReview(currentVocab, knewIt = true)
-                            vocabViewModel.updateVocab(updated)
-                            showAnswer = false
-                            if (currentIndex + 1 < testList.size) {
-                                currentIndex++
-                            } else {
-                                currentIndex = 0
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Text("I knew", fontSize = 16.sp)
-                    }
-
-                    // "I didn't know" button (p = false)
-                    Button(
-                        onClick = {
-                            val updated = calculateNextReview(currentVocab, knewIt = false)
-                            vocabViewModel.updateVocab(updated)
-                            showAnswer = false
-                            if (currentIndex + 1 < testList.size) {
-                                currentIndex++
-                            } else {
-                                currentIndex = 0
+                        Text(
+                            text = "Your done with learning :)",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        if (testCategory == "LEARNED_VIEW") {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { viewIndex = 0; showAnswer = false }) {
+                                Text("Restart Browsing")
                             }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp)
-                    ) {
-                        Text("I didn't", fontSize = 16.sp)
+                        }
                     }
-
-
                 }
             }
         } else {
-            // No words in this list
+            // Queue is empty
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -588,7 +770,12 @@ fun TestingVocab_Page(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "No words in '$testCategory' category right now!", fontSize = 18.sp)
+                    Text(
+                        text = "Your done with learning :)",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }
@@ -620,42 +807,58 @@ fun Geography_Page(navController: NavController) {
     }
 }
 
+/**
+ * Secret_Page containing extra play & debug buttons moved from Home.
+ */
 @Composable
-fun Secret_Page(navController: NavController, onPlayClick: () -> Unit, onOpenAlgorithm: () -> Unit) {
+fun Secret_Page(
+    navController: NavController,
+    onPlayClick: () -> Unit,
+    onOpenAlgorithm: () -> Unit
+) {
     val context = LocalContext.current
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("You`re not supposed to see this")
+        Text(text = "Secret Page", fontSize = 24.sp, fontWeight = FontWeight.Bold)
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Image(
+                bitmap = ImageBitmap.imageResource(id = R.drawable.eath_scroll),
+                contentDescription = "earth_scroll_from_Mc",
+                modifier = Modifier
+                    .size(64.dp)
+                    .clickable { onPlayClick() },
+                filterQuality = FilterQuality.None
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(onClick = onPlayClick) {
+            Text(text = "Play Sound")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        AlgorithmButton(onOpenAlgorithm = onOpenAlgorithm)
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         Button(onClick = { Toast.makeText(context, "m = $m", Toast.LENGTH_SHORT).show() }) {
             Text(text = "print m")
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        AlgorithmButton(onOpenAlgorithm)
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Button(onClick = onPlayClick) {
-            Text(text = "Play")
+        Button(onClick = { m += 1 }) {
+            Text(text = "output m", fontSize = 20.sp)
         }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Image(
-            bitmap = ImageBitmap.imageResource(id = R.drawable.eath_scroll),
-            contentDescription = "earth_scroll_from_Mc",
-            modifier = Modifier
-                .size(64.dp)
-                .clickable { onPlayClick() },
-            filterQuality = FilterQuality.None
-        )
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -669,8 +872,8 @@ fun Secret_Page(navController: NavController, onPlayClick: () -> Unit, onOpenAlg
 @Preview(showBackground = true)
 @Composable
 fun AppPreview() {
-        AppTheme(mode = AppThemeMode.DEFAULT) {
-            val navController = rememberNavController()
-            Home_Page(navController = navController)
-        }
+    AppTheme(mode = AppThemeMode.DEFAULT) {
+        val navController = rememberNavController()
+        Home_Page(navController = navController)
     }
+}

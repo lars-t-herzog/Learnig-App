@@ -30,8 +30,8 @@ fun AlgorithmButton(onOpenAlgorithm: () -> Unit) {
  */
 fun calculateNextReview(vocab: Vocab, knewIt: Boolean): Vocab {
     val today = System.currentTimeMillis() / 86_400_000L
-    var nextRepetitions = vocab.repetitions
-    var nextIntervalDays = 0
+    var nextRepetitions: Int
+    var nextIntervalDays: Int
 
     if (knewIt) {
         // User knew the word ("I knew") -> advance repetition level
@@ -55,7 +55,7 @@ fun calculateNextReview(vocab: Vocab, knewIt: Boolean): Vocab {
             4 -> { nextRepetitions = 3; nextIntervalDays = 2 }
             5 -> { nextRepetitions = 4; nextIntervalDays = 3 }
             6 -> { nextRepetitions = 5; nextIntervalDays = 7 }
-            else -> { nextRepetitions = 6; nextIntervalDays = 14 } // Drop back down from learned to revise
+            else -> { nextRepetitions = 5; nextIntervalDays = 7 } // Drop back down from learned to revise
         }
     }
 
@@ -85,27 +85,27 @@ class AlgorithmClass {
 }
 
 class AlgorithmTestClass {
-    var repetitions: Int = 0
+    var m: Int = 0
     var p: Boolean = true
     var lastLog: String = ""
 
     fun algorithm(): String {
-        val initialRep = repetitions
+        val initialM = m
         val initialP = p
 
-        val log = if (initialRep == 7) {
+        val log = if (initialM == 7) {
             "your done!"
         } else {
-            when (repetitions) {
-                0 -> repetitions += if (p) 2 else 1
-                1 -> repetitions += if (p) 1 else 0
-                2 -> repetitions += if (p) 1 else -1
-                3 -> repetitions += if (p) 1 else -1
-                4 -> repetitions += if (p) 1 else -1
-                5 -> repetitions += if (p) 1 else -1
-                6 -> repetitions += if (p) 1 else -1
+            when (m) {
+                0 -> m += if (p) 2 else 1
+                1 -> m += if (p) 1 else 0
+                2 -> m += if (p) 1 else -1
+                3 -> m += if (p) 1 else -1
+                4 -> m += if (p) 1 else -1
+                5 -> m += if (p) 1 else -1
+                6 -> m += if (p) 1 else -1
             }
-            "Tested: repetitions was $initialRep, p was $initialP -> repetitions is now $repetitions"
+            "Tested: m was $initialM, p was $initialP -> m is now $m"
         }
 
         lastLog = log
@@ -115,6 +115,7 @@ class AlgorithmTestClass {
 
 /**
  * VocabManagerCard: The UI card for Adding and Deleting Vocabulary in Room SQLite.
+ * Supports case-insensitive searching & matching on BOTH Word and Translation!
  */
 @Composable
 fun VocabManagerCard(vocabViewModel: VocabViewModel = viewModel()) {
@@ -125,25 +126,38 @@ fun VocabManagerCard(vocabViewModel: VocabViewModel = viewModel()) {
 
     val allVocabs by vocabViewModel.allVocab.collectAsState()
 
-    // Filter matching words for autocomplete list
+    // Case-insensitive two-way search matching on BOTH Word AND Translation
     val matchingWords = remember(wordInput, allVocabs.size) {
         val matches = mutableListOf<Vocab>()
-        if (wordInput.isNotBlank()) {
+        val query = wordInput.trim().lowercase()
+        if (query.isNotEmpty()) {
             for (vocab in allVocabs) {
-                if (vocab.word.lowercase().startsWith(wordInput.lowercase())) {
+                val matchWord = vocab.word.lowercase().contains(query)
+                val matchTrans = vocab.translation.lowercase().contains(query)
+                if (matchWord || matchTrans) {
                     matches.add(vocab)
                 }
             }
-            matches.sortBy { it.word }
+            matches.sortBy { it.word.lowercase() }
         }
         matches.take(10)
     }
 
-    // Gray foreshadow suggestion
-    val foreshadowSuggestion = if (matchingWords.isNotEmpty() && wordInput.isNotBlank()) {
-        matchingWords[0].word
-    } else {
-        ""
+    // Gray foreshadow suggestion for autocomplete (case-insensitive)
+    val foreshadowSuggestion = remember(wordInput, matchingWords) {
+        val query = wordInput.trim().lowercase()
+        if (matchingWords.isNotEmpty() && query.isNotEmpty()) {
+            val topMatch = matchingWords[0]
+            if (topMatch.word.lowercase().startsWith(query)) {
+                topMatch.word
+            } else if (topMatch.translation.lowercase().startsWith(query)) {
+                topMatch.translation
+            } else {
+                ""
+            }
+        } else {
+            ""
+        }
     }
 
     Card(
@@ -199,17 +213,17 @@ fun VocabManagerCard(vocabViewModel: VocabViewModel = viewModel()) {
                 }
             }
 
-            // Word TextField with Gray Foreshadowing
+            // Word TextField with Gray Foreshadowing (Both-way case-insensitive)
             Box(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = wordInput,
                     onValueChange = { wordInput = it },
-                    label = { Text("Word to ${if (isAddMode) "Add" else "Delete"}") },
+                    label = { Text("Word/Translation to ${if (isAddMode) "Add" else "Delete"}") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                if (foreshadowSuggestion.isNotEmpty() && foreshadowSuggestion.lowercase() != wordInput.lowercase()) {
+                if (foreshadowSuggestion.isNotEmpty() && foreshadowSuggestion.lowercase() != wordInput.trim().lowercase()) {
                     Text(
                         text = foreshadowSuggestion,
                         color = Color.Gray.copy(alpha = 0.5f),
@@ -232,10 +246,10 @@ fun VocabManagerCard(vocabViewModel: VocabViewModel = viewModel()) {
                 )
             }
 
-            // Alphabetical Suggestions List
+            // Alphabetical Suggestions List (Searches Word & Translation)
             if (matchingWords.isNotEmpty()) {
                 Text(
-                    text = "Matches in Database (Top 10):",
+                    text = "Matches in Database (Word / Translation):",
                     fontSize = 12.sp,
                     color = Color.Gray
                 )
@@ -270,19 +284,23 @@ fun VocabManagerCard(vocabViewModel: VocabViewModel = viewModel()) {
             // Action Button
             Button(
                 onClick = {
-                    if (wordInput.isNotBlank()) {
+                    val inputTarget = wordInput.trim()
+                    if (inputTarget.isNotBlank()) {
                         if (isAddMode) {
                             // Insert into Room SQLite database with repetitions = 0
-                            vocabViewModel.insertVocab(wordInput.trim(), translationInput.trim())
-                            statusMessage = "Added to Database: '${wordInput.trim()}'"
+                            vocabViewModel.insertVocab(inputTarget, translationInput.trim())
+                            statusMessage = "Added to Database: '$inputTarget'"
                         } else {
-                            // Delete from Room SQLite database
-                            val match = allVocabs.firstOrNull { it.word.lowercase() == wordInput.trim().lowercase() }
+                            // Case-insensitive deletion matching on BOTH Word OR Translation
+                            val match = allVocabs.firstOrNull {
+                                it.word.equals(inputTarget, ignoreCase = true) ||
+                                it.translation.equals(inputTarget, ignoreCase = true)
+                            }
                             if (match != null) {
                                 vocabViewModel.deleteVocab(match)
-                                statusMessage = "Deleted from Database: '${match.word}'"
+                                statusMessage = "Deleted from Database: '${match.word}' (${match.translation})"
                             } else {
-                                statusMessage = "Word '${wordInput.trim()}' not found in Database"
+                                statusMessage = "Word/Translation '$inputTarget' not found"
                             }
                         }
                         wordInput = ""
@@ -297,17 +315,19 @@ fun VocabManagerCard(vocabViewModel: VocabViewModel = viewModel()) {
                 Text(text = if (isAddMode) "Add Vocabulary" else "Delete Vocabulary")
             }
 
-            Text(
-                text = statusMessage,
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (statusMessage.isNotEmpty()) {
+                Text(
+                    text = statusMessage,
+                    fontSize = 13.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
 
 @Composable
-fun AlgorithmScreen(navController : NavController) {
+fun AlgorithmScreen(navController: NavController) {
     var repetitionsState by remember { mutableIntStateOf(0) }
     var pState by remember { mutableStateOf(true) }
     var logText by remember { mutableStateOf("No test run yet") }
@@ -335,10 +355,10 @@ fun AlgorithmScreen(navController : NavController) {
         }
 
         Button(onClick = {
-            algo.repetitions = repetitionsState
+            algo.m = repetitionsState
             algo.p = pState
             logText = algo.algorithm()
-            repetitionsState = algo.repetitions
+            repetitionsState = algo.m
         }) {
             Text("Run Algorithm")
         }
@@ -355,13 +375,10 @@ fun AlgorithmScreen(navController : NavController) {
             Text("Reset")
         }
 
-        Spacer(modifier = Modifier.weight(1f))
-
         Button(
             onClick = { navController.popBackStack(Routes.HOME, false) },
             modifier = Modifier.align(Alignment.End)
         ) { Text("Back") }
-
     }
 }
 
