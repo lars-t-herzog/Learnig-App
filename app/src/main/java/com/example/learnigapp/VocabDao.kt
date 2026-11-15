@@ -21,6 +21,9 @@ interface VocabDao {
     @Delete
     suspend fun delete(vocab: Vocab)
 
+    @Query("DELETE FROM Vocab")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM Vocab ORDER BY word")
     fun getAll(): Flow<List<Vocab>>
 

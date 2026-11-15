@@ -157,10 +157,10 @@ object Routes {
     const val SECRET = "Secret_Page"
     const val ALGORITHM = "Algorithm"
     const val ADD_DEL_VOCAB = "AddDelVocab_Page"
-    const val VOCAB_NEW = "Vocab_Page_New"
-    const val VOCAB_REVISE = "Vocab_Page_Revise"
-    const val VOCAB_LEARNED = "Vocab_Page_Learned"
-    const val VOCAB_LEARNED_VIEW = "Vocab_Page_Browse"
+    const val TESTING_VOCAB_NEW = "TestingVocab_Page_New"
+    const val TESTING_VOCAB_REVISE = "TestingVocab_Page_Revise"
+    const val TESTING_VOCAB_LEARNED = "TestingVocab_Page_Learned"
+    const val TESTING_VOCAB_LEARNED_VIEW = "TestingVocab_Page_Learned_View"
 }
 
 @Composable
@@ -215,20 +215,20 @@ fun App(themeViewModel: ThemeViewModel = viewModel()) {
                     AddDelVocab_Page(navController)
                 }
 
-                composable(Routes.VOCAB_NEW) {
-                   Vocab_Page(navController, testCategory = "New")
+                composable(Routes.TESTING_VOCAB_NEW) {
+                    TestingVocab_Page(navController, testCategory = "NEW")
                 }
 
-                composable(Routes.VOCAB_REVISE) {
-                    Vocab_Page(navController, testCategory = "Revise")
+                composable(Routes.TESTING_VOCAB_REVISE) {
+                    TestingVocab_Page(navController, testCategory = "REVISE")
                 }
 
-                composable(Routes.VOCAB_LEARNED) {
-                    Vocab_Page(navController, testCategory = "Learned")
+                composable(Routes.TESTING_VOCAB_LEARNED) {
+                    TestingVocab_Page(navController, testCategory = "LEARNED")
                 }
 
-                composable(Routes.VOCAB_LEARNED_VIEW) {
-                   Vocab_Page(navController, testCategory = "Browse")
+                composable(Routes.TESTING_VOCAB_LEARNED_VIEW) {
+                    TestingVocab_Page(navController, testCategory = "LEARNED_VIEW")
                 }
             }
         }
@@ -427,13 +427,13 @@ fun Settings_Page(
                 Text("Export Backup")
             }
 
-            // Import Backup Button
+            // Import Backup Button (Red Theme Error Color)
             Button(
                 onClick = {
                     importLauncher.launch(arrayOf("application/json", "*/*"))
                 },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
             ) {
                 Text("Import Backup")
             }
@@ -489,7 +489,7 @@ fun English_Page(navController: NavController, vocabViewModel: VocabViewModel = 
     }
     val learnedVocabs = remember(allVocabs) { allVocabs.filter { it.repetitions >= 7 } }
     val browseVocabs = remember(allVocabs) {
-        learnedVocabs.ifEmpty { allVocabs.filter { it.repetitions > 0 } }
+        if (learnedVocabs.isNotEmpty()) learnedVocabs else allVocabs.filter { it.repetitions > 0 }
     }
 
     Column(
@@ -518,7 +518,7 @@ fun English_Page(navController: NavController, vocabViewModel: VocabViewModel = 
                 Text(text = "New Words", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text(text = "${newVocabs.size} new words ready to learn", fontSize = 14.sp, color = Color.Gray)
                 Spacer(modifier = Modifier.height(6.dp))
-                Button(onClick = { navController.navigate(Routes.VOCAB_NEW) }) {
+                Button(onClick = { navController.navigate(Routes.TESTING_VOCAB_NEW) }) {
                     Text("Learn New Words")
                 }
             }
@@ -533,38 +533,38 @@ fun English_Page(navController: NavController, vocabViewModel: VocabViewModel = 
                 Text(text = "Revise Words", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text(text = "${reviseVocabs.size} words due today", fontSize = 14.sp, color = Color.Gray)
                 Spacer(modifier = Modifier.height(6.dp))
-                Button(onClick = { navController.navigate(Routes.VOCAB_REVISE) }) {
+                Button(onClick = { navController.navigate(Routes.TESTING_VOCAB_REVISE) }) {
                     Text("Revise Due Words")
                 }
             }
         }
 
-        // Category 3: Learned Words (repetitions >= 7 - modifies algorithm if mistake)
+        // Category 3: Practice Learned Words (repetitions >= 7 - modifies algorithm if mistake)
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(text = "Learned Words", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Practice Learned Words", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text(text = "${learnedVocabs.size} words completed", fontSize = 14.sp, color = Color.Gray)
                 Spacer(modifier = Modifier.height(6.dp))
-                Button(onClick = { navController.navigate(Routes.VOCAB_LEARNED) }) {
-                    Text(" Learned Words")
+                Button(onClick = { navController.navigate(Routes.TESTING_VOCAB_LEARNED) }) {
+                    Text("Practice Learned Words")
                 }
             }
         }
 
-        // Category 4: Browse Words Viewer (repetitions >= 7 - no algorithm modification)
+        // Category 4: Browse Learned Words Viewer (repetitions >= 7 - no algorithm modification)
         Card(
             modifier = Modifier.fillMaxWidth(),
             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Column(modifier = Modifier.padding(12.dp)) {
-                Text(text = "Browse Words", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Browse Learned Words", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Text(text = "${browseVocabs.size} words available to review", fontSize = 14.sp, color = Color.Gray)
                 Spacer(modifier = Modifier.height(6.dp))
-                Button(onClick = { navController.navigate(Routes.VOCAB_LEARNED_VIEW) }) {
-                    Text("Browse Words")
+                Button(onClick = { navController.navigate(Routes.TESTING_VOCAB_LEARNED_VIEW) }) {
+                    Text("Browse Learned Words")
                 }
             }
         }
@@ -579,14 +579,14 @@ fun English_Page(navController: NavController, vocabViewModel: VocabViewModel = 
 }
 
 /**
- * Flashcard Page for Vocab ("Vocab_Page").
+ * Flashcard Testing Page for Vocab ("TestingVocab_Page").
  * Shows word in a big card, "Show Translation" button reveals answer and replaces with "I knew" and "I didn't".
  * Automatically advances through all words dynamically until completion.
  */
 @Composable
-fun Vocab_Page(
+fun TestingVocab_Page(
     navController: NavController,
-    testCategory: String, // "New", "Revise", "Learned", or "Browse"
+    testCategory: String, // "NEW", "REVISE", "LEARNED", or "LEARNED_VIEW"
     vocabViewModel: VocabViewModel = viewModel()
 ) {
     val allVocabs by vocabViewModel.allVocab.collectAsState()
@@ -595,12 +595,12 @@ fun Vocab_Page(
     // Dynamically filter matching words for this category
     val currentQueue = remember(allVocabs, testCategory, today) {
         when (testCategory) {
-            "New" -> allVocabs.filter { it.repetitions == 0 }
-            "Revise" -> allVocabs.filter { it.repetitions in 1..6 && it.dueDay <= today }
-            "Learned" -> allVocabs.filter { it.repetitions >= 7 }
-            "Browse" -> {
+            "NEW" -> allVocabs.filter { it.repetitions == 0 }
+            "REVISE" -> allVocabs.filter { it.repetitions in 1..6 && it.dueDay <= today }
+            "LEARNED" -> allVocabs.filter { it.repetitions >= 7 }
+            "LEARNED_VIEW" -> {
                 val learned = allVocabs.filter { it.repetitions >= 7 }
-                learned.ifEmpty { allVocabs.filter { it.repetitions > 0 } }
+                if (learned.isNotEmpty()) learned else allVocabs.filter { it.repetitions > 0 }
             }
             else -> allVocabs
         }
@@ -616,7 +616,7 @@ fun Vocab_Page(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "$testCategory Words",
+            text = "Testing: $testCategory Words",
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold
         )
@@ -624,7 +624,7 @@ fun Vocab_Page(
         Spacer(modifier = Modifier.height(24.dp))
 
         if (currentQueue.isNotEmpty()) {
-            val activeIndex = if (testCategory == "Browse") {
+            val activeIndex = if (testCategory == "LEARNED_VIEW") {
                 viewIndex.coerceAtMost(currentQueue.size - 1)
             } else {
                 0 // In NEW, REVISE, and LEARNED, position 0 always points to the next active word!
@@ -744,7 +744,7 @@ fun Vocab_Page(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "Your done with learning :)",
+                            text = "Your done with learing :)",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary
@@ -771,7 +771,7 @@ fun Vocab_Page(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Your done with learning :)",
+                        text = "Your done with learing :)",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -808,15 +808,20 @@ fun Geography_Page(navController: NavController) {
 }
 
 /**
- * Secret_Page containing extra play & debug buttons moved from Home.
+ * Secret_Page containing extra play & debug buttons moved from Home,
+ * plus a confirmation dialog for deleting all saved vocabulary words.
  */
 @Composable
 fun Secret_Page(
     navController: NavController,
     onPlayClick: () -> Unit,
-    onOpenAlgorithm: () -> Unit
+    onOpenAlgorithm: () -> Unit,
+    vocabViewModel: VocabViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var deleteConfirmationInput by remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -860,12 +865,69 @@ fun Secret_Page(
             Text(text = "output m", fontSize = 20.sp)
         }
 
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Small Red Button: Delete All Saved Words
+        Button(
+            onClick = {
+                deleteConfirmationInput = ""
+                showDeleteDialog = true
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+        ) {
+            Text("Delete all saved words", fontSize = 14.sp)
+        }
+
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
             onClick = { navController.popBackStack(Routes.HOME, false) },
             modifier = Modifier.align(Alignment.End)
         ) { Text("Back") }
+    }
+
+    // Confirmation AlertDialog requiring user to type 'delete'
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Confirm Database Wiping") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Type 'delete' below to confirm clearing all saved vocabulary words from SQLite database.",
+                        fontSize = 14.sp
+                    )
+                    OutlinedTextField(
+                        value = deleteConfirmationInput,
+                        onValueChange = { deleteConfirmationInput = it },
+                        label = { Text("Type 'delete'") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (deleteConfirmationInput.trim().equals("delete", ignoreCase = true)) {
+                            vocabViewModel.deleteAllVocabs {
+                                Toast.makeText(context, "All saved vocabulary words deleted", Toast.LENGTH_LONG).show()
+                            }
+                            showDeleteDialog = false
+                        }
+                    },
+                    enabled = deleteConfirmationInput.trim().equals("delete", ignoreCase = true),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 
