@@ -40,6 +40,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.learnigapp.ui.BleScreen
 import com.example.learnigapp.ui.theme.DarkColors
 import com.example.learnigapp.ui.theme.Default
 import com.example.learnigapp.ui.theme.LightColors
@@ -161,6 +162,7 @@ object Routes {
     const val TESTING_VOCAB_REVISE = "TestingVocab_Page_Revise"
     const val TESTING_VOCAB_LEARNED = "TestingVocab_Page_Learned"
     const val TESTING_VOCAB_LEARNED_VIEW = "TestingVocab_Page_Learned_View"
+    const val BLE = "ble"
 }
 
 @Composable
@@ -230,6 +232,10 @@ fun App(themeViewModel: ThemeViewModel = viewModel()) {
                 composable(Routes.TESTING_VOCAB_LEARNED_VIEW) {
                     TestingVocab_Page(navController, testCategory = "LEARNED_VIEW")
                 }
+
+                composable(Routes.BLE) {
+                    BleScreen()
+                }
             }
         }
     }
@@ -270,6 +276,12 @@ fun Home_Page(navController: NavController) {
             modifier = Modifier.align(Alignment.End),
             contentPadding = PaddingValues(0.dp)
         ) { Text(text = "Settings", fontSize = 20.sp) }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(
+            onClick = { navController.navigate(Routes.BLE) }
+        ) { Text(text = "BLE Client", fontSize = 18.sp) }
 
         Spacer(modifier = Modifier.weight(1f))
 
